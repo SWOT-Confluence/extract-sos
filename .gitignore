@@ -1,0 +1,4 @@
+__pycache__
+.vscode/
+txts/
+append_sos.log
