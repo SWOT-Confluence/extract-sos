@@ -55,11 +55,10 @@ def check_observations(width, d_x_area, slope2, qhat):
     """
 
     # Test validity of data
-    if ~np.isnan(qhat).all():
-        qhat[qhat < 0] = np.NAN 
+    qhat[qhat < 0] = np.NAN 
     slope2[slope2 < 0] = np.NaN
     width[width < 0] = np.NaN
-    if is_invalid(qhat) or is_invalid(slope2) or is_invalid(width) or is_invalid(d_x_area):
+    if np.isnan(qhat[0]) or is_invalid(slope2) or is_invalid(width) or is_invalid(d_x_area):
         return {}
     
     # Data is valid
@@ -70,7 +69,6 @@ def check_observations(width, d_x_area, slope2, qhat):
             "d_x_area" : d_x_area,
             "Qhat" : qhat
         }
-    
 
 def is_invalid(obs):
     """Checks if there are atleast 5 valid nx values for each nt.
@@ -79,12 +77,12 @@ def is_invalid(obs):
     """
 
     # Gather a count of valid values per nx
-    obs_count = np.apply_along_axis(lambda obs: np.count_nonzero(~np.isnan(obs)),
-        axis = 0, arr = obs)
-
-    # Evaluate number of invalid values detected
-    invalid = obs_count[obs_count < 5]
-    if invalid.size != 0:
-        return True
-    else:
+    valid_nodes = np.apply_along_axis(lambda obs: np.count_nonzero(~np.isnan(obs)),
+        axis = 1, arr = obs)
+    
+    # Evaluate whether there are enough valid values per nt
+    valid_days = valid_nodes[valid_nodes > (obs.shape[1] - 5)]
+    if valid_days.size > 5:
         return False
+    else:
+        return True

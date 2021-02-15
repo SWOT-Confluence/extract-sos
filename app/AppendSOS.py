@@ -33,7 +33,7 @@ class AppendSOS:
         append them back to the SoS."""
         
         for reach in self.reach_list:
-    
+            
             # Get required geoBAM input data from each file
             #print(f"\nRetrieving input data for reach: {reach}")
             swot_path = self.data_dir / (reach + "_SWOT.nc")

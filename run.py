@@ -1,6 +1,7 @@
 # Standard imports
 import logging
 from pathlib import Path
+import sys
 from time import time
 
 # Local Imports
@@ -26,22 +27,36 @@ def create_logger():
 
     return logger
 
-def main():
-    """Main method run append method."""
+def log_results(logger, append, time):
+    """Log results of append SoS run."""
 
-    start = time()
-    logger = create_logger()
-    data_dir = Path("fill")
-    append = AppendSOS(data_dir)
-    append.append()
-    end = time()
     logger.info("valid reaches:")
     logger.info(', '.join(append.valid_list))
     logger.info("total valid: " + str(len(append.valid_list)))
     logger.info("invalid reaches:")
     logger.info(', '.join(append.invalid_list))
     logger.info("total invalid: " + str(len(append.invalid_list)))
-    logger.info(f"Run time: {end - start}")
+    logger.info(f"Run time: {time}")
+
+
+def main(path):
+    """Main method run append method."""
+
+    # Run program
+    start = time()
+    logger = create_logger()
+    data_dir = Path(path)
+    append = AppendSOS(data_dir)
+    append.append()
+    end = time()
+
+    # Log data about run
+    log_results(logger, append, end - start)
 
 if __name__ == "__main__":
-    main()
+    try:
+        path = sys.argv[1]
+        main(path)
+    except IndexError:
+        raise SystemExit("Please enter a valid path to a directory that" 
+            + "\ncontains SWOT and SoS data.")
