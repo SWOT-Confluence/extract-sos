@@ -22,12 +22,13 @@ class TestInput(unittest.TestCase):
     INVALID_QHAT = np.repeat(-1.0, 10)
 
     # Invalid NaN data
-    NAN_WIDTH = np.reshape(np.arange(0, 50, dtype=float), (5, 10))
-    NAN_WIDTH[NAN_WIDTH < 10] = np.NAN
-    NAN_SLOPE = np.reshape(np.arange(0, 50, dtype=float), (5, 10))
-    NAN_SLOPE[np.logical_and(NAN_SLOPE >= 10, NAN_SLOPE < 20)] = np.NAN
-    NAN_DA = np.reshape(np.arange(0, 50, dtype=float), (5, 10))
-    NAN_DA[np.logical_and(NAN_DA >= 20, NAN_DA < 25)] = np.NAN
+    NAN_WIDTH = np.reshape(np.arange(0, 80, dtype=float), (8, 10))
+    NAN_WIDTH[NAN_WIDTH < 50] = np.NAN
+    NAN_SLOPE = np.reshape(np.arange(0, 80, dtype=float), (8, 10))
+    NAN_SLOPE[:, :6] = np.NAN
+    NAN_DA = np.reshape(np.arange(0, 80, dtype=float), (8, 10))
+    NAN_DA[NAN_DA < 50] = np.NAN
+    NAN_DA[:, :6] = np.NAN
     NAN_QHAT = np.repeat(np.NaN, 10)
 
     def test_check_observations_valid(self):
@@ -69,17 +70,18 @@ class TestInput(unittest.TestCase):
     def test_check_observations_nan(self):
         """Tests check_observations function on NaN values."""
 
-        # Execute function with invalid slope
+        # Execute function with invalid slope - not enough time steps
         obs_dict = check_observations(self.VALID_WIDTH, self.VALID_DA, 
             self.NAN_SLOPE, self.VALID_QHAT)
+        print(obs_dict)
         self.assertFalse(obs_dict)
 
-        # Execute function with invalid width
+        # Execute function with invalid width - not enough nodes
         obs_dict = check_observations(self.NAN_WIDTH, self.VALID_DA, 
             self.VALID_SLOPE, self.VALID_QHAT)
         self.assertFalse(obs_dict)
 
-        # Execute function with invalid dA
+        # Execute function with invalid dA - not enough nodes and time steps
         obs_dict = check_observations(self.VALID_WIDTH, self.NAN_DA, 
             self.VALID_SLOPE, self.VALID_QHAT)
         self.assertFalse(obs_dict)
