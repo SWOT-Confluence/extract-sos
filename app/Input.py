@@ -49,7 +49,7 @@ def check_observations(width, d_x_area, slope2, qhat):
 
     Valid data includes:
         - Non-negative values for Qhat, width, and slope
-        - Each time step has at least 5 valid floating point values
+        - Each time step and node has at least 5 valid floating point values
     
     Returns empty dictionary if invalid data detected.
     """
@@ -58,31 +58,78 @@ def check_observations(width, d_x_area, slope2, qhat):
     qhat[qhat < 0] = np.NAN 
     slope2[slope2 < 0] = np.NaN
     width[width < 0] = np.NaN
-    if np.isnan(qhat[0]) or is_invalid(slope2) or is_invalid(width) or is_invalid(d_x_area):
+ 
+    # Qhat
+    if np.isnan(qhat[0]):
         return {}
+
+    # slope2
+    slope_dict = is_valid(slope2, "slope")
+    if not slope_dict["valid"]:
+        return {}
+
+    # width
+    width_dict = is_valid(width, "width")
+    if not width_dict["valid"]:
+        return {}
+
+    # d_x_area
+    dA_dict = is_valid(d_x_area, "dA")
+    if not dA_dict["valid"]:
+        return {}
+
+    # Remove invalid node (row) observations
+    invalid_node_indexes = np.unique(np.concatenate((slope_dict["invalid_nodes"][0], 
+        width_dict["invalid_nodes"][0], dA_dict["invalid_nodes"][0])))
+    slope2 = np.delete(slope2, invalid_node_indexes, axis = 0)
+    width = np.delete(width, invalid_node_indexes, axis = 0)
+    d_x_area = np.delete(d_x_area, invalid_node_indexes, axis = 0)
     
-    # Data is valid
-    else:
-        return {
+    # Remove invalid time (column) indexes
+    invalid_time_indexes = np.unique(np.concatenate((slope_dict["invalid_times"][0], 
+        width_dict["invalid_times"][0], dA_dict["invalid_times"][0])))
+    slope2 = np.delete(slope2, invalid_time_indexes, axis = 1)
+    width = np.delete(width, invalid_time_indexes, axis = 1)
+    d_x_area = np.delete(d_x_area, invalid_time_indexes, axis = 1)
+    
+    # Valid data is returned
+    return {
             "slope2" : slope2,
             "width" : width,
             "d_x_area" : d_x_area,
             "Qhat" : qhat
         }
 
-def is_invalid(obs):
+def is_valid(obs, type="default"):
     """Checks if there are atleast 5 valid nx values for each nt.
 
-    Returns boolean based on validity of obs parameter.
+    Returns dictionary of whether the observations are valid, and if they are 
+    valid includes invalid node and time step indexes.
     """
 
-    # Gather a count of valid values per nx
-    valid_nodes = np.apply_along_axis(lambda obs: np.count_nonzero(~np.isnan(obs)),
+    # Gather a count of valid values per nx (across nt) returns nt vector
+    time = np.apply_along_axis(lambda obs: np.count_nonzero(~np.isnan(obs)),
+        axis = 0, arr = obs)
+
+    # Are there enough valid nx per nt
+    valid_time = time[time >= 5]
+
+    # Gather a count of valid values per nt (across nx) returns nx vector
+    nodes = np.apply_along_axis(lambda obs: np.count_nonzero(~np.isnan(obs)),
         axis = 1, arr = obs)
     
-    # Evaluate whether there are enough valid values per nt
-    valid_days = valid_nodes[valid_nodes > (obs.shape[1] - 5)]
-    if valid_days.size > 5:
-        return False
+    # Are there enough valid nt per nx
+    valid_nodes = nodes[nodes >= 5]
+
+    if valid_time.size >= 5 and valid_nodes.size >= 5:
+        return {
+            "valid" : True,
+            "invalid_nodes" : np.nonzero(nodes < 5),
+            "invalid_times" : np.nonzero(time < 5)
+            }
     else:
-        return True
+        return {
+            "valid" : False,
+            "invalid_nodes" : None,
+            "invalid_times" : None
+            }
