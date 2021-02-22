@@ -79,7 +79,7 @@ def create_rank_logger(rank):
     rank_logger.setLevel(logging.DEBUG)
 
     # Create a handler to file and set level
-    filename = f"logs/{rank}.log"
+    filename = f"{rank}.log"
     file_handler = logging.FileHandler(filename)
     file_handler.setLevel(logging.INFO)
 
