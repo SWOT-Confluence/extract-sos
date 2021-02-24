@@ -9,18 +9,18 @@ class Output:
     ----------
         prior_data: rpy2.robjects.vectors.ListVector
             ListVector of prior data from geoBAMr::bam_priors function
-        sword_path: Path
+        sos_path: Path
             Path to SWORD of Science NetCDF
     """
 
     FILL_VALUE = float(-9999)
 
-    def __init__(self, sword_path, prior_data):
-        self.sword_path = sword_path
+    def __init__(self, sos_path, prior_data):
+        self.sos_path = sos_path
         self.prior_data = prior_data
 
     def append_priors_node(self):
-        """Append prior data to sword_path file."""
+        """Append prior data to sos_path file."""
 
         # Create prior dictionary
         prior_dict = create_prior_dict()
@@ -30,7 +30,7 @@ class Output:
             extract_priors(prior_dict, self.prior_data)
         
         # Write prior dictionary to SWORD of Science file
-        write_priors(self.sword_path, prior_dict)
+        write_priors(self.sos_path, prior_dict)
 
 def create_prior_dict():
     return {

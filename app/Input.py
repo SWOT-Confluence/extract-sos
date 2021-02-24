@@ -11,14 +11,14 @@ class Input:
             Dictionary of formatted input data
         swot_path: Path
             Path to SWOT NetCDF
-        sword_path: Path
+        sos_path: Path
             Path to SWORD of Science NetCDF
     """
 
-    def __init__(self, swot_path, sword_path):
+    def __init__(self, swot_path, sos_path):
         self.data = {}
         self.swot_path = swot_path
-        self.sword_path = sword_path
+        self.sos_path = sos_path
 
     def format_data(self):
         """Format SWOT and SWORD OS data to match input requirments of geoBAM.
@@ -34,7 +34,7 @@ class Input:
         slope = swot_dataset["node/slope2"][:].filled(np.nan)
 
         # Reach-level Qhat value (geoBAM requires a vector)
-        sword_dataset = nc.Dataset(self.sword_path)
+        sword_dataset = nc.Dataset(self.sos_path)
         qhat = sword_dataset["reach/Qhat"][:].filled(np.nan)
         qhat = np.repeat(qhat, width.shape[0])
 

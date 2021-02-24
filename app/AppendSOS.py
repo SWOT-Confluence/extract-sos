@@ -37,8 +37,8 @@ class AppendSOS:
             # Get required geoBAM input data from each file
             self.logger.info(f"Retrieving input data for reach: {reach}")
             swot_path = self.data_dir / (reach + "_SWOT.nc")
-            sword_path = self.data_dir / (reach + "_SWORD.nc")
-            input = Input(swot_path, sword_path)
+            sos_path = self.data_dir / (reach + "_SOS.nc")
+            input = Input(swot_path, sos_path)
             input.format_data()
 
             # Extract priors from geoBAM R functions for valid data only
@@ -52,5 +52,5 @@ class AppendSOS:
                 self.invalid_list.append(reach)
             
             # Append data to the SWORD of Scence NetCDF file
-            output = Output(sword_path, geobam_priors)
+            output = Output(sos_path, geobam_priors)
             output.append_priors_node()
