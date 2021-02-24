@@ -35,7 +35,7 @@ class AppendSOS:
         
         for reach in self.reach_list:
             # Get required geoBAM input data from each file
-            self.logger.info(f"Retrieving input data for reach: {reach}")
+            self.logger.info(f"Appending data for reach: {reach}")
             swot_path = self.data_dir / (reach + "_SWOT.nc")
             sos_path = self.data_dir / (reach + "_SOS.nc")
             input = Input(swot_path, sos_path)
