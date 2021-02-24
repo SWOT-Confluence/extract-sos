@@ -1,6 +1,7 @@
 # Third party imports
 import numpy as np
 import netCDF4 as nc
+import rpy2.rinterface as rinterface
 
 class Output:
     """Class that represents SWORD of Science data obtained from geoBAM run.
@@ -24,13 +25,15 @@ class Output:
 
         # Create prior dictionary
         prior_dict = create_prior_dict()
+        valid = False
 
         # Test if valid data could be extracted
         if self.prior_data:
             extract_priors(prior_dict, self.prior_data)
+            valid = True
         
         # Write prior dictionary to SWORD of Science file
-        write_priors(self.sos_path, prior_dict)
+        write_priors(self.sos_path, prior_dict, valid)
 
 def create_prior_dict():
     return {
@@ -125,7 +128,7 @@ def extract_priors(prior_dict, priors):
     prior_dict["sigma_man"] = np.array(other_priors.rx2("sigma_man"))[0][0]
     prior_dict["sigma_amhg"] = np.array(other_priors.rx2("sigma_amhg"))[0][0]
 
-def write_priors(sword_file, priors):
+def write_priors(sword_file, priors, valid):
     """Appends priors to SWORD of Science file if valid parameter is True.
     
     Appends the fill value to priors if the valid parameters is False as prior
@@ -135,19 +138,72 @@ def write_priors(sword_file, priors):
     # Retrieve NetCDF4 dataset
     dataset = nc.Dataset(sword_file, mode='a', format="NETCDF4")
 
-    # Retrieve node group
-    reach_grp = dataset["reach"]
+    # Append priors
+    append_variables(priors, dataset)
 
-    # Write priors to node group
-    for key, value in priors.items():
-        create_variable(reach_grp, key, value)
+    # Assign fill value to invalid reaches
+    if not valid:
+        dataset["reach/Qhat"].assignValue(Output.FILL_VALUE)
+        dataset["reach/Qsd"].assignValue(Output.FILL_VALUE)
 
     # Close NetCDF4 dataset
     dataset.close()
 
-def create_variable(group, name, value):
+def append_variables(priors, dataset):
+    """ Appends NetCDF4 variables for geoBAM priors."""
+
+    # Retrieve reach group
+    reach_grp = dataset["reach"]
+
+    # Create and variables for each prior
+    create_variable(reach_grp, "river_type", "Brinkerhoff_class_number", "NA", priors["river_type"])
+    create_variable(reach_grp, "lowerbound_A0", "Median_area_min", "m^2", priors["lowerbound_A0"])
+    create_variable(reach_grp, "upperbound_A0", "Median_area_max", "m^2", priors["upperbound_A0"])
+    create_variable(reach_grp, "lowerbound_logn", "Mannings_n_min", "NA", priors["lowerbound_logn"])
+    create_variable(reach_grp, "upperbound_logn", "Mannings_n_max", "NA", priors["upperbound_logn"])
+    create_variable(reach_grp, "lowerbound_b", "AHG_b_min", "NA", priors["lowerbound_b"])
+    create_variable(reach_grp, "upperbound_b", "AHG_b_max", "NA", priors["upperbound_b"])
+    create_variable(reach_grp, "lowerbound_logWb", "Bankfull_width_min", "m", priors["lowerbound_logWb"])
+    create_variable(reach_grp, "upperbound_logWb", "Bankfull_width_max", "m", priors["upperbound_logWb"])
+    create_variable(reach_grp, "lowerbound_logDb", "Bankfull_depth_min", "m", priors["lowerbound_logDb"])
+    create_variable(reach_grp, "upperbound_logDb", "Bankfull_depth_max", "m", priors["upperbound_logDb"])
+    create_variable(reach_grp, "lowerbound_logr", "Dingman_shape_min", "NA", priors["lowerbound_logr"])
+    create_variable(reach_grp, "upperbound_logr", "Dingman_shape_max", "NA", priors["upperbound_logr"])
+    create_variable(reach_grp, "logA0_hat", "Median_area_mean", "m^2", priors["logA0_hat"])
+    create_variable(reach_grp, "logn_hat", "Mannings_n_mean", "NA", priors["logn_hat"])
+    create_variable(reach_grp, "b_hat", "AHG_b_mean", "NA", priors["b_hat"])
+    create_variable(reach_grp, "logWb_hat", "Bankfull_width_mean", "m", priors["logWb_hat"])
+    create_variable(reach_grp, "logDb_hat", "Bankfull_depth_mean", "m", priors["logDb_hat"])
+    create_variable(reach_grp, "logr_hat", "Dingman_shape_mean", "NA", priors["logr_hat"])
+    create_variable(reach_grp, "logA0_sd", "Median_area_sd", "m^2", priors["logA0_sd"])
+    create_variable(reach_grp, "logn_sd", "Mannings_n_sd", "NA", priors["logn_sd"])
+    create_variable(reach_grp, "b_sd", "AHG_b_sd", "NA", priors["b_sd"])
+    create_variable(reach_grp, "logWb_sd", "Bankfull_width_sd", "m", priors["logWb_sd"])
+    create_variable(reach_grp, "logDb_sd", "Bankfull_depth_sd", "m", priors["logDb_sd"])
+    create_variable(reach_grp, "logr_sd", "Dingman_shape_sd", "NA", priors["logr_sd"])
+    create_variable(reach_grp, "lowerbound_logQ", "Discharge_min", "m^3/s", priors["lowerbound_logQ"])
+    create_variable(reach_grp, "upperbound_logQ", "Discharge_max", "m^3/s", priors["upperbound_logQ"])
+    create_variable(reach_grp, "lowerbound_logWc", "AMHG_wc_min", "m", priors["lowerbound_logWc"])
+    create_variable(reach_grp, "upperbound_logWc", "AMHG_wc_min", "m", priors["upperbound_logWc"])
+    create_variable(reach_grp, "lowerbound_logQc", "AMHG_Qc_min", "m^3/s", priors["lowerbound_logQc"])
+    create_variable(reach_grp, "upperbound_logQc", "AMHG_Qc_max", "m^3/s", priors["upperbound_logQc"])
+    create_variable(reach_grp, "logWc_hat", "AMHG_wc_mean", "m", priors["logWc_hat"])
+    create_variable(reach_grp, "logQc_hat", "AMHG_Qc_mean", "m^3/s", priors["logQc_hat"])
+    create_variable(reach_grp, "logQ_sd", "Discharge_sd", "m^3/s", priors["logQ_sd"])
+    create_variable(reach_grp, "logWc_sd", "AMHG_wc_sd", "m", priors["logWc_sd"])
+    create_variable(reach_grp, "logQc_sd", "AMHG_qc_min", "m^3/s", priors["logQc_sd"])
+    create_variable(reach_grp, "Werr_sd", "Width_measurement_error", "m", priors["Werr_sd"])
+    create_variable(reach_grp, "Serr_sd", "Slope_measurement_error", "m/m", priors["Serr_sd"])
+    create_variable(reach_grp, "dAerr_sd", "d_Area_measurement_error", "m", priors["dAerr_sd"])
+    create_variable(reach_grp, "sigma_man", "Manning_structural_error", "NA", priors["sigma_man"])
+    create_variable(reach_grp, "sigma_amhg", "AMHG_structural_error", "NA", priors["sigma_amhg"])
+
+def create_variable(group, name, long_name, units, value):
     """Create NetCDF4 variable and assign data to it."""
 
     netcdf_var = group.createVariable(name, "f8", fill_value = Output.FILL_VALUE)
-    netcdf_var[np.isnan(netcdf_var)] = Output.FILL_VALUE
+    netcdf_var.long_name = long_name
+    netcdf_var.units = units
+    if np.isnan(value) or value is rinterface.NA_Integer:
+        value = Output.FILL_VALUE
     netcdf_var.assignValue(value)

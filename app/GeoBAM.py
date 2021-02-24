@@ -3,6 +3,9 @@ import rpy2.robjects as robjects
 from rpy2.robjects import numpy2ri
 from rpy2.robjects.packages import importr
 
+# Print R warnings
+robjects.r['options'](warn=1)
+
 class GeoBAM:
     """Class that represents a run of geoBAM to extract priors.
 
