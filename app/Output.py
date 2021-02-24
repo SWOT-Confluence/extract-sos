@@ -146,6 +146,9 @@ def write_priors(sword_file, priors, valid):
         dataset["reach/Qhat"].assignValue(Output.FILL_VALUE)
         dataset["reach/Qsd"].assignValue(Output.FILL_VALUE)
 
+    # Set global attribute flag for validity
+    dataset.valid = 1 if valid else 0
+
     # Close NetCDF4 dataset
     dataset.close()
 
@@ -155,7 +158,7 @@ def append_variables(priors, dataset):
     # Retrieve reach group
     reach_grp = dataset["reach"]
 
-    # Create and variables for each prior
+    # Create variables for each prior
     create_variable(reach_grp, "river_type", "Brinkerhoff_class_number", "NA", priors["river_type"])
     create_variable(reach_grp, "lowerbound_A0", "Median_area_min", "m^2", priors["lowerbound_A0"])
     create_variable(reach_grp, "upperbound_A0", "Median_area_max", "m^2", priors["upperbound_A0"])
