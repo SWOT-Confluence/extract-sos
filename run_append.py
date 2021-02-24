@@ -9,6 +9,7 @@ from time import time
 from mpi4py import MPI
 
 # Local Imports
+from app.config import sos_config
 from app.AppendSOS import AppendSOS
 
 """Runs append sos program using data directory argument."""
@@ -79,7 +80,7 @@ def create_rank_logger(rank):
     rank_logger.setLevel(logging.DEBUG)
 
     # Create a handler to file and set level
-    filename = f"{rank}.log"
+    filename = f"{sos_config['logging_dir']}/{rank}.log"
     file_handler = logging.FileHandler(filename)
     file_handler.setLevel(logging.INFO)
 
@@ -117,9 +118,4 @@ def log_results(logger, append, time):
     logger.info(f"Run time: {time}")
 
 if __name__ == "__main__":
-    try:
-        path = sys.argv[1]
-        run(path)
-    except IndexError:
-        raise SystemExit("Please enter a valid path to a directory that" 
-            + "\ncontains SWOT and SoS data.")
+    run(sos_config["data_dir"])
