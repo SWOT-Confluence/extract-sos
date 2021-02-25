@@ -207,6 +207,6 @@ def create_variable(group, name, long_name, units, value):
     netcdf_var = group.createVariable(name, "f8", fill_value = Output.FILL_VALUE)
     netcdf_var.long_name = long_name
     netcdf_var.units = units
-    if np.isnan(value) or value is rinterface.NA_Integer:
+    if np.isnan(value) or value is rinterface.NA_Integer or value is rinterface.NA_Logical:
         value = Output.FILL_VALUE
     netcdf_var.assignValue(value)
