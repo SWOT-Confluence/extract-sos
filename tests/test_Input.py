@@ -3,9 +3,10 @@ import unittest
 
 # Third party imports
 import numpy as np
+from numpy.testing import assert_allclose
 
 # Local imports
-from app.Input import check_observations
+from app.Input import Input, check_observations
 
 class TestInput(unittest.TestCase):
     """Tests methods from Input class."""
@@ -73,7 +74,6 @@ class TestInput(unittest.TestCase):
         # Execute function with invalid slope - not enough time steps
         obs_dict = check_observations(self.VALID_WIDTH, self.VALID_DA, 
             self.NAN_SLOPE, self.VALID_QHAT)
-        print(obs_dict)
         self.assertFalse(obs_dict)
 
         # Execute function with invalid width - not enough nodes
@@ -96,6 +96,26 @@ class TestInput(unittest.TestCase):
             self.NAN_SLOPE, self.NAN_QHAT)
         self.assertFalse(obs_dict)
 
+    def test_format_data(self):
+        # Create Input object and run format method
+        input = Input("tests/test_data/001_1_SWOT.nc", "tests/test_data/001_1_SOS.nc")
+        input.format_data()
+        
+        # Create expected data
+        dxa = np.array([358.2, 353.1, 274.5, 304.5, 309.9,
+            159.6, 120.6, 129.0, 156.0, 150.0,
+            0.0, 0.0, 0.0, 0.0, 0.0,
+            -137.1, -153.9, -206.4, -193.2, -210.0,
+            -360.0, -371.4, -459.9, -395.1, -410.4]).reshape(5,5)
+        slope_reach = np.array([0.013247, 0.011991, 0.011540, 0.010223, 0.009850])
+        slope2 = np.tile(slope_reach, (5, 1))
+        width = np.full((5, 5), 30.0)
+        
+        # Assert result
+        assert_allclose(dxa, input.data["d_x_area"])
+        assert_allclose(slope2, input.data["slope2"])
+        assert_allclose(width, input.data["width"])
+        self.assertAlmostEqual(12.90476190, input.data["Qhat"][0])
 
 if __name__ == "__main__":
     unittest.main()
