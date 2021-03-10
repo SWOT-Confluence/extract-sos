@@ -83,7 +83,7 @@ def create_prior_dict():
 def extract_priors(prior_dict, priors):
     """Extracts and stores priors in the prior_dict parameter."""
 
-    prior_dict["river_type"] = priors.rx2("River_Type")[0]
+    prior_dict["river_type"] = np.nanmedian(priors.rx2("River_Type"))
     river_priors = priors.rx2("river_type_priors")
     prior_dict["lowerbound_A0"] = np.array(river_priors.rx2("lowerbound_A0"))[0]
     prior_dict["upperbound_A0"] = np.array(river_priors.rx2("upperbound_A0"))[0]
@@ -147,7 +147,7 @@ def write_priors(sword_file, priors, valid):
         dataset["reach/Qsd"].assignValue(Output.FILL_VALUE)
 
     # Set global attribute flag for validity
-    dataset.valid = 1 if valid else 0
+    dataset.valid = np.uint32(1) if valid else np.uint32(0)
 
     # Close NetCDF4 dataset
     dataset.close()

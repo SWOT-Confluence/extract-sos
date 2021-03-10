@@ -64,17 +64,17 @@ def check_observations(width, d_x_area, slope2, qhat):
         return {}
 
     # slope2
-    slope_dict = is_valid(slope2, "slope")
+    slope_dict = is_valid(slope2)
     if not slope_dict["valid"]:
         return {}
 
     # width
-    width_dict = is_valid(width, "width")
+    width_dict = is_valid(width)
     if not width_dict["valid"]:
         return {}
 
     # d_x_area
-    dA_dict = is_valid(d_x_area, "dA")
+    dA_dict = is_valid(d_x_area)
     if not dA_dict["valid"]:
         return {}
 
@@ -100,7 +100,7 @@ def check_observations(width, d_x_area, slope2, qhat):
             "Qhat" : qhat
         }
 
-def is_valid(obs, type="default"):
+def is_valid(obs):
     """Checks if there are atleast 5 valid nx values for each nt.
 
     Returns dictionary of whether the observations are valid, and if they are 
