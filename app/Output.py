@@ -83,7 +83,7 @@ def create_prior_dict():
 def extract_priors(prior_dict, priors):
     """Extracts and stores priors in the prior_dict parameter."""
 
-    prior_dict["river_type"] = np.nanmedian(priors.rx2("River_Type"))
+    prior_dict["river_type"] = priors.rx2("River_Type")[0]
     river_priors = priors.rx2("river_type_priors")
     prior_dict["lowerbound_A0"] = np.array(river_priors.rx2("lowerbound_A0"))[0]
     prior_dict["upperbound_A0"] = np.array(river_priors.rx2("upperbound_A0"))[0]
