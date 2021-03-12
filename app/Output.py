@@ -16,11 +16,12 @@ class Output:
 
     FILL_VALUE = float(-9999)
 
-    def __init__(self, sos_path, prior_data):
+    def __init__(self, sos_path, prior_data, invalid_indexes):
         self.sos_path = sos_path
         self.prior_data = prior_data
+        self.invalid_indexes = invalid_indexes
 
-    def append_priors_node(self):
+    def append_priors(self):
         """Append prior data to sos_path file."""
 
         # Create prior dictionary
@@ -29,7 +30,7 @@ class Output:
 
         # Test if valid data could be extracted
         if self.prior_data:
-            extract_priors(prior_dict, self.prior_data)
+            extract_priors(prior_dict, self.prior_data, self.invalid_indexes)
             valid = True
         
         # Write prior dictionary to SWORD of Science file
@@ -80,10 +81,10 @@ def create_prior_dict():
         "sigma_amhg" : Output.FILL_VALUE
     }
     
-def extract_priors(prior_dict, priors):
+def extract_priors(prior_dict, priors, invalid_indexes):
     """Extracts and stores priors in the prior_dict parameter."""
 
-    prior_dict["river_type"] = priors.rx2("River_Type")[0]
+    prior_dict["river_type"] = insert_invalid(np.array(priors.rx2("River_Type")), invalid_indexes)
     river_priors = priors.rx2("river_type_priors")
     prior_dict["lowerbound_A0"] = np.array(river_priors.rx2("lowerbound_A0"))[0]
     prior_dict["upperbound_A0"] = np.array(river_priors.rx2("upperbound_A0"))[0]
@@ -128,7 +129,21 @@ def extract_priors(prior_dict, priors):
     prior_dict["sigma_man"] = np.array(other_priors.rx2("sigma_man"))[0][0]
     prior_dict["sigma_amhg"] = np.array(other_priors.rx2("sigma_amhg"))[0][0]
 
-def write_priors(sword_file, priors, valid):
+def insert_invalid(river_types, invalid_indexes):
+    """Insert NaN value at invalid indezes in river_priors array."""
+
+    # Insert NaN for NA_Integer and NA_logical
+    river_types[river_types == -2147483648] = Output.FILL_VALUE
+    river_types[np.isnan(river_types)] = Output.FILL_VALUE
+
+    # Insert NaN for invalid nodes
+    for index in invalid_indexes:
+        river_types = np.insert(river_types, index, Output.FILL_VALUE)
+
+    return river_types
+
+
+def write_priors(sos_file, priors, valid):
     """Appends priors to SWORD of Science file if valid parameter is True.
     
     Appends the fill value to priors if the valid parameters is False as prior
@@ -136,15 +151,20 @@ def write_priors(sword_file, priors, valid):
     """
 
     # Retrieve NetCDF4 dataset
-    dataset = nc.Dataset(sword_file, mode='a', format="NETCDF4")
+    dataset = nc.Dataset(sos_file, mode='a', format="NETCDF4")
 
     # Append priors
     append_variables(priors, dataset)
 
-    # Assign fill value to invalid reaches
+    # Append river type as NA and assign fill value to invalid reaches
     if not valid:
+        create_variable(dataset["node"], "river_type", "Brinkerhoff_class_number", "NA", priors["river_type"])
         dataset["reach/Qhat"].assignValue(Output.FILL_VALUE)
         dataset["reach/Qsd"].assignValue(Output.FILL_VALUE)
+    else:
+        # Create nx dimension and coordinate variable and append vector 
+        create_nx(np.shape(priors["river_type"]), dataset)
+        append_river_type(priors, dataset)
 
     # Set global attribute flag for validity
     dataset.valid = np.uint32(1) if valid else np.uint32(0)
@@ -153,13 +173,12 @@ def write_priors(sword_file, priors, valid):
     dataset.close()
 
 def append_variables(priors, dataset):
-    """ Appends NetCDF4 variables for geoBAM priors."""
+    """ Appends NetCDF4 variables for geoBAM priors to reach group."""
 
     # Retrieve reach group
     reach_grp = dataset["reach"]
 
     # Create variables for each prior
-    create_variable(reach_grp, "river_type", "Brinkerhoff_class_number", "NA", priors["river_type"])
     create_variable(reach_grp, "lowerbound_A0", "Median_area_min", "m^2", priors["lowerbound_A0"])
     create_variable(reach_grp, "upperbound_A0", "Median_area_max", "m^2", priors["upperbound_A0"])
     create_variable(reach_grp, "lowerbound_logn", "Mannings_n_min", "NA", priors["lowerbound_logn"])
@@ -210,3 +229,20 @@ def create_variable(group, name, long_name, units, value):
     if np.isnan(value) or value is rinterface.NA_Integer or value is rinterface.NA_Logical:
         value = Output.FILL_VALUE
     netcdf_var.assignValue(value)
+
+def create_nx(length, dataset):
+    """Create node dimension and coordinate variable."""
+    
+    dataset.createDimension("nx", length[0])
+    nx = dataset.createVariable("nx", "i4", ("nx",))
+    nx.units = "node"
+    nx.long_name = "nx"
+    nx[:] = range(1, length[0] + 1)
+
+def append_river_type(priors, dataset):
+    """Append river type vector prior to node group."""
+
+    netcdf_var = dataset["node"].createVariable('river_type', "f8", ("nx"), fill_value = Output.FILL_VALUE)
+    netcdf_var.long_name = "Brinkerhoff_class_number"
+    netcdf_var.units = "NA"
+    netcdf_var[:] = priors["river_type"]

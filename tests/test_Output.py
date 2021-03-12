@@ -5,11 +5,13 @@ import unittest
 # Third party imports
 import netCDF4 as nc
 from netCDF4 import Dataset
+import numpy as np
+from numpy.testing import assert_almost_equal
 
 # Local imports
 from app.Input import Input
 from app.GeoBAM import GeoBAM
-from app.Output import Output
+from app.Output import Output, insert_invalid
 
 class TestOutput(unittest.TestCase):
     """Tests methods from Output class."""
@@ -30,8 +32,8 @@ class TestOutput(unittest.TestCase):
         copyfile("tests/test_data/001_1_SOS.nc", "tests/test_data/001_1_SOS_append.nc")
         
         # Write output
-        output = Output("tests/test_data/001_1_SOS_append.nc", priors)
-        output.append_priors_node()
+        output = Output("tests/test_data/001_1_SOS_append.nc", priors, [])
+        output.append_priors()
 
         # Assert priors exist in file
         sos = Dataset("tests/test_data/001_1_SOS_append.nc")
@@ -39,7 +41,7 @@ class TestOutput(unittest.TestCase):
         self.assertEqual(1, getattr(sos, "valid"))
         self.assertTrue(isinstance(sos["reach/Qhat"], nc._netCDF4.Variable))
         self.assertTrue(isinstance(sos["reach/Qsd"], nc._netCDF4.Variable))
-        self.assertTrue(isinstance(sos["reach/river_type"], nc._netCDF4.Variable))
+        self.assertTrue(isinstance(sos["node/river_type"], nc._netCDF4.Variable))
         self.assertTrue(isinstance(sos["reach/lowerbound_A0"], nc._netCDF4.Variable))
         self.assertTrue(isinstance(sos["reach/upperbound_A0"], nc._netCDF4.Variable))
         self.assertTrue(isinstance(sos["reach/lowerbound_logn"], nc._netCDF4.Variable))
@@ -80,3 +82,45 @@ class TestOutput(unittest.TestCase):
         self.assertTrue(isinstance(sos["reach/dAerr_sd"], nc._netCDF4.Variable))
         self.assertTrue(isinstance(sos["reach/sigma_man"], nc._netCDF4.Variable))
         self.assertTrue(isinstance(sos["reach/sigma_amhg"], nc._netCDF4.Variable))
+
+    def test_concatenate_invalid(self):
+        
+        # Create river type array
+        river_types = np.array([7, 10, 11, 11, 10, 7, 11, 10, 7, 7], dtype=float)
+
+        # Remove invalid nodes
+        invalid_node_indexes = [1, 3, 7]
+        river_types = np.delete(river_types, invalid_node_indexes, axis = 0)
+
+        # Insert NaN for invalid nodes
+        for index in invalid_node_indexes:
+            river_types = np.insert(river_types, index, np.nan)
+        
+        # Assert expected result
+        expected = np.array([7, np.nan, 11, np.nan, 10, 7, 11, np.nan, 7, 7])
+        assert_almost_equal(expected, river_types)
+
+    def test_insert_invalid(self):
+
+        # Invalid indexes
+        invalid_indexes = [5, 9, 11, 14, 17, 18, 19, 20, 21, 22, 23, 25, 28, 31,
+            32, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 49, 50]
+
+        # River types (including numpy representation of R's NA values)
+        river_types = np.array([7,10,11,7,11,11,10,10,-2147483648,-2147483648,
+            -2147483648,-2147483648,-2147483648,-2147483648,-2147483648,
+            -2147483648,-2147483648,-2147483648,-2147483648,-2147483648,
+            -2147483648,7,-2147483648])
+        
+        expected = [7,10,11,7,11,-9999,
+        11,10,10,-9999,-9999,-9999,-9999,
+            -9999,-9999,-9999,-9999,-9999,-9999,-9999,
+            -9999,-9999,-9999,-9999,-9999,-9999,-9999,
+            -9999,-9999,-9999,-9999,-9999,-9999,-9999,-9999,
+            -9999,-9999,-9999,-9999,-9999,-9999,-9999,-9999,-9999,-9999,
+            -9999,-9999,-9999,-9999,-9999,-9999,
+            -9999,7,-9999]
+
+        # Execute function and assert result
+        actual = insert_invalid(river_types, invalid_indexes)
+        assert_almost_equal(expected, actual)

@@ -43,14 +43,17 @@ class AppendSOS:
 
             # Extract priors from geoBAM R functions for valid data only
             geobam_priors = None
+            invalid_indexes = None
             if input.data:
                 self.valid_list.append(reach)
                 geobam = GeoBAM(input.data)
                 geobam_data = geobam.bam_data()
                 geobam_priors = geobam.bam_priors(geobam_data)
+                invalid_indexes = input.data["invalid_indexes"]
             else:
                 self.invalid_list.append(reach)
+                invalid_indexes = []
             
             # Append data to the SWORD of Scence NetCDF file
-            output = Output(sos_path, geobam_priors)
-            output.append_priors_node()
+            output = Output(sos_path, geobam_priors, invalid_indexes)
+            output.append_priors()

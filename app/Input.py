@@ -97,7 +97,8 @@ def check_observations(width, d_x_area, slope2, qhat):
             "slope2" : slope2,
             "width" : width,
             "d_x_area" : d_x_area,
-            "Qhat" : qhat
+            "Qhat" : qhat,
+            "invalid_indexes" : invalid_node_indexes
         }
 
 def is_valid(obs):
